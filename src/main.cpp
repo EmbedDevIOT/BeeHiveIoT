@@ -385,7 +385,7 @@ void setup()
     SaveConfig();
 
   // EEPROM Init
-  EEPROM_Init();
+  // EEPROM_Init();
 
   // HX711 Init
   scale.begin(HX_DT, HX_CLK);
@@ -462,7 +462,7 @@ void setup()
   xTaskCreatePinnedToCore(
       Task1000ms,
       "Task3",
-      2048,
+      4096,
       NULL,
       1,
       &Task3,
@@ -481,7 +481,14 @@ void setup()
 }
 
 //=========================      M A I N       ===========================
-void loop() {}
+void loop()
+{
+  // HTTP Handling else WiFi = ON (Counter 10 min)
+  if (ST.WiFiEnable)
+  {
+    HandleClient();
+  }
+}
 //========================================================================
 
 //========================================================================

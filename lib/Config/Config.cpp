@@ -131,7 +131,7 @@ void CheckSystemState()
 // Debug information
 void DebugControl()
 {
-  char message[37];
+  char message[50];
 
   Serial.println(F("!!!!!!!!!!!!!!  DEBUG INFO  !!!!!!!!!!!!!!!!!!"));
   // sprintf(message, "DISP:%d | ML %d | P: %d T: %02d:%02d ", System.DispState, System.DispMenu, disp_ptr, tmrMin, tmrSec);
@@ -140,21 +140,21 @@ void DebugControl()
   Serial.println(message);
   sprintf(message, "RTC Date: %4d.%02d.%02d", Clock.year, Clock.month, Clock.date);
   Serial.println(message);
-  // sprintf(message, "T_DS:%0.2f *C", sensors.dsT);
-  // Serial.println(message);
-  // sprintf(message, "T_BME:%0.2f *C | H_BME:%0d % | P_BHE:%d", sensors.bmeT, (int)sensors.bmeH, (int)sensors.bmeP_mmHg);
-  // Serial.println(message);
+  sprintf(message, "T_DS:%0.2f *C", sensors.dsT);
+  Serial.println(message);
+  sprintf(message, "T_BME:%0.2f *C | H_BME:%0d % | P_BHE:%d", sensors.bmeT, (int)sensors.bmeH, (int)sensors.bmeP_mmHg);
+  Serial.println(message);
   sprintf(message, "WEIGHT: %0.2fg | CAL: %0.5f  | W_AVR: %0d", sensors.kg, sensors.calib, sensors.averange);
   Serial.println(message);
-  // sprintf(message, "BAT: %003d", sensors.voltage);
-  // Serial.println(message);
-  // sprintf(message, "SIM800 Signal: %d", sensors.signal);
-  // Serial.println(message);
-  // sprintf(message, "EEPROM: SMS_1 %02d | SMS_2 %02d", Config.UserSendTime1, Config.UserSendTime2);
-  // Serial.println(message);
+  sprintf(message, "BAT: %003d", sensors.voltage);
+  Serial.println(message);
+  sprintf(message, "SIM800 Signal: %d", sensors.signal);
+  Serial.println(message);
+  sprintf(message, "EEPROM: SMS_1 %02d | SMS_2 %02d", CFG.UserSendTime1, CFG.UserSendTime2);
+  Serial.println(message);
 
-  // sprintf(message, "EEPROM: Phone: %s", Config.phone);
-  // Serial.println(message);
+  sprintf(message, "EEPROM: Phone: %s", CFG.phone);
+  Serial.println(message);
   // sprintf(message, "Block Timer: %d", block_timer);
   // Serial.println(message);
 

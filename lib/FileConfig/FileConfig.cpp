@@ -20,42 +20,55 @@ void LoadConfig()
 
   char TempBuf[15];
 
-
   struct _sys
   {
     uint8_t H = 0;
     uint8_t M = 0;
-    int D = 0;
-    int MO = 0;
-    int Y = 0;
-  } S;
+  } SMS1, SMS2;
 
-  ST.WiFiEnable = doc["wifi_st"];
-
+  sensors.averange = doc["avr"];
+  sensors.calib = doc["cal"];
   CFG.fw = doc["firmware"].as<String>();
-
   CFG.IP1 = doc["ip1"];
   CFG.IP2 = doc["ip2"];
   CFG.IP3 = doc["ip3"];
   CFG.IP4 = doc["ip4"];
-
   CFG.APPAS = doc["pass"].as<String>();
+  CFG.phone = doc["phone"].as<String>();
+
+  doc["sms1"].as<String>().toCharArray(TempBuf, 10);
+  SMS1.H = atoi(strtok(TempBuf, ":"));
+  SMS1.M = atoi(strtok(NULL, ":"));
+  CFG.UserSendTime1 = SMS1.H;
+
+  doc["sms2"].as<String>().toCharArray(TempBuf, 10);
+  SMS2.H = atoi(strtok(TempBuf, ":"));
+  SMS2.M = atoi(strtok(NULL, ":"));
+  CFG.UserSendTime2 = SMS2.H;
 
   CFG.sn = doc["sn"];
 
   CFG.APSSID = doc["ssid"].as<String>();
 
   sensors.T1_offset = doc["t1_offset"];
+  sensors.T2_offset = doc["t2_offset"];
 
+  ST.WiFiEnable = doc["wifi_st"];
 }
 
 void ShowLoadJSONConfig()
 {
-  char msg[32] = {0}; // buff for send message
+  char msg[60] = {0}; // buff for send message
 
   Serial.println(F("##############  System Configuration  ###############"));
   Serial.println("-------------------- USER DATA -----------------------");
+  Serial.printf("####  Phone: %s \r\n", CFG.phone);
+  Serial.printf("####  SMS1: %d \r\n", CFG.UserSendTime1);
+  Serial.printf("####  SMS2: %d \r\n", CFG.UserSendTime2);
   Serial.printf("####  T1_OFFSET: %d \r\n", sensors.T1_offset);
+  Serial.printf("####  T2_OFFSET: %d \r\n", sensors.T2_offset);
+  sprintf(msg, "####  CAL: %0.5f  | W_AVR: %0d \r\n", sensors.calib, sensors.averange);
+  Serial.println(F(msg));
   Serial.println("------------------ USER DATA END----------------------");
   Serial.println();
   Serial.println("---------------------- SYSTEM ------------------------");
@@ -64,7 +77,7 @@ void ShowLoadJSONConfig()
   sprintf(msg, "####  TIME: %02d:%02d:%02d", Clock.hour, Clock.minute, Clock.second);
   Serial.println(F(msg));
   Serial.printf("####  WiFI_PWR: %d \r\n", ST.WiFiEnable);
-  Serial.printf("####  WiFI NAME: %s \r\n",CFG.APSSID);
+  Serial.printf("####  WiFI NAME: %s \r\n", CFG.APSSID);
   Serial.printf("####  WiFI PASS: %s \r\n", CFG.APPAS);
   sprintf(msg, "####  IP: %00d.%00d.%00d.%00d", CFG.IP1, CFG.IP2, CFG.IP3, CFG.IP4);
   Serial.println(F(msg));
@@ -82,24 +95,24 @@ void ShowLoadJSONConfig()
 void SaveConfig()
 {
   String jsonConfig = "";
-  StaticJsonDocument<2048> doc;
+  StaticJsonDocument<1024> doc;
 
   // doc["carname"] = String(UserText.carname);
-
-
-
+  doc["avr"] = sensors.averange;
+  doc["cal"] = sensors.calib;
   doc["firmware"] = CFG.fw;
   doc["ip1"] = CFG.IP1;
   doc["ip2"] = CFG.IP2;
   doc["ip3"] = CFG.IP3;
   doc["ip4"] = CFG.IP4;
   doc["pass"] = CFG.APPAS;
+  doc["phone"] = CFG.phone;
+
   doc["sn"] = CFG.sn;
   doc["ssid"] = CFG.APSSID;
   doc["t1_offset"] = sensors.T1_offset;
-
+  doc["t2_offset"] = sensors.T2_offset;
   doc["wifi_st"] = ST.WiFiEnable;
-
 
   File configFile = SPIFFS.open("/config.json", "w");
   serializeJson(doc, configFile); // Writing json string to file

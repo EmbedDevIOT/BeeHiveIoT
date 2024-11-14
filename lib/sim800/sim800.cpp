@@ -174,6 +174,6 @@ void SendUserSMS()
     Serial.println();
 #endif
     // #ifndef DEBUG
-    sendSMS(Config.phone, buf);
+    sendSMS(CFG.phone, buf);
     // #endif
 }

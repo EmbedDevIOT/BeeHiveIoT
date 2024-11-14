@@ -1,21 +1,18 @@
 {
-   "sn": 0,
+   "avr": -270985,
+   "cal": -0.77,
    "firmware":"1.0",
-
-   "ssid": "BeeHive",
-   "pass": "retra777zxc",
    "ip1": 192,
    "ip2": 168,
    "ip3": 1,
    "ip4": 1,
-
+   "pass": "retra777zxc",
    "phone": "79524645894",
    "sms1": "09:00",
    "sms2": "18:00",
-   "cal": -0.73,
-
+   "sn": 0,
+   "ssid": "BeeHive",
    "t1_offset": 0,
-   "t2_offset": -1,
-
+   "t2_offset": 0,
    "wifi_st": 1
 }
