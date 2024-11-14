@@ -118,7 +118,6 @@ void TimeUpdate()
   S.MO = atoi(strtok(NULL, "-"));
   S.D = atoi(strtok(NULL, "-"));
 
-  CFG.gmt = HTTP.arg("GMT").toInt();
 
   Clock.hour = S.H;
   Clock.minute = S.M;
@@ -126,7 +125,6 @@ void TimeUpdate()
   Clock.month = S.MO;
   Clock.date = S.D;
 
-  sprintf(msg, "GMT: %d", CFG.gmt);
   Serial.println(msg);
   sprintf(msg, "Time: %d : %d", S.H, S.M);
   Serial.println(msg);
@@ -144,23 +142,9 @@ void TimeUpdate()
 /*******************************************************************************************************/
 
 /*******************************************************************************************************/
-void UpdateStateWC()
-{
-  String buf = "{";
-  buf += "\"st_wc1\":";
-  buf += STATE.StateWC1;
-  buf += ",";
-  buf += "\"st_wc2\":";
-  buf += STATE.StateWC2;
-  buf += "}";
-  HTTP.send(200, "text/plain", buf);
-}
-/*******************************************************************************************************/
-
-/*******************************************************************************************************/
 void SystemUpdate()
 {
-  HCONF.T1_offset = HTTP.arg("T1O").toInt();
+  CFG.T1_offset = HTTP.arg("T1O").toInt();
   HCONF.T2_offset = HTTP.arg("T2O").toInt();
   HCONF.bright = HTTP.arg("BR").toInt();
   HCONF.volume = HTTP.arg("VOL").toInt();

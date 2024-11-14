@@ -91,7 +91,7 @@ void ShowInfoDevice(void)
   Serial.println(CFG.sn);
   Serial.print(F("fw_date:"));
   Serial.println(CFG.fwdate);
-  Serial.println(CFG.firmware);
+  Serial.println(CFG.fw);
   Serial.println(CFG.chipID);
   Serial.println(F("by EmbedDev"));
   Serial.println();
@@ -131,14 +131,35 @@ void CheckSystemState()
 // Debug information
 void DebugControl()
 {
-    char message[37];
+  char message[37];
 
-    Serial.println(F("!!!!!!!!!!!!!!  DEBUG INFO  !!!!!!!!!!!!!!!!!!"));
-    sprintf(message, "RTC Time: %02d:%02d:%02d", Clock.hour, Clock.minute, Clock.second);
-    Serial.println(message);
-    sprintf(message, "RTC Date: %4d.%02d.%02d", Clock.year, Clock.month, Clock.date);
-    Serial.println(message);
+  Serial.println(F("!!!!!!!!!!!!!!  DEBUG INFO  !!!!!!!!!!!!!!!!!!"));
+  // sprintf(message, "DISP:%d | ML %d | P: %d T: %02d:%02d ", System.DispState, System.DispMenu, disp_ptr, tmrMin, tmrSec);
+  // Serial.println(message);
+  sprintf(message, "RTC Time: %02d:%02d:%02d", Clock.hour, Clock.minute, Clock.second);
+  Serial.println(message);
+  sprintf(message, "RTC Date: %4d.%02d.%02d", Clock.year, Clock.month, Clock.date);
+  Serial.println(message);
+  // sprintf(message, "T_DS:%0.2f *C", sensors.dsT);
+  // Serial.println(message);
+  // sprintf(message, "T_BME:%0.2f *C | H_BME:%0d % | P_BHE:%d", sensors.bmeT, (int)sensors.bmeH, (int)sensors.bmeP_mmHg);
+  // Serial.println(message);
+  sprintf(message, "WEIGHT: %0.2fg | CAL: %0.5f  | W_AVR: %0d", sensors.kg, sensors.calib, sensors.averange);
+  Serial.println(message);
+  // sprintf(message, "BAT: %003d", sensors.voltage);
+  // Serial.println(message);
+  // sprintf(message, "SIM800 Signal: %d", sensors.signal);
+  // Serial.println(message);
+  // sprintf(message, "EEPROM: SMS_1 %02d | SMS_2 %02d", Config.UserSendTime1, Config.UserSendTime2);
+  // Serial.println(message);
 
+  // sprintf(message, "EEPROM: Phone: %s", Config.phone);
+  // Serial.println(message);
+  // sprintf(message, "Block Timer: %d", block_timer);
+  // Serial.println(message);
+
+  Serial.println(F("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"));
+  Serial.println();
 }
 
 /*******************************************************************************************************/
@@ -146,6 +167,5 @@ void DebugControl()
 /*******************************************************************************************************/
 void SystemFactoryReset()
 {
-
 }
 /*******************************************************************************************************/
