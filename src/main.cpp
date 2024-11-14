@@ -324,7 +324,7 @@ void EEPROM_Init()
 void StartingInfo()
 {
   char msg[32];
-  disp.clear(); 
+  disp.clear();
 
   disp.setScale(2); // масштаб текста (1..4)
   disp.setCursor(10, 3);
@@ -666,8 +666,8 @@ void GetDSData()
 //========================================================================
 
 //========================================================================
-// Get Data from HX711
-// Every 500 ms
+// Working with HX711
+// Get data from HX711 (Every 500 ms)
 void GetWeight()
 {
   scale.set_scale(sensors.calib);
@@ -675,6 +675,22 @@ void GetWeight()
   sensors.grms = (sensors.units * 0.035274);
   sensors.kg = float(sensors.grms / 1000);
   sensors.kg = constrain(sensors.kg, 0.0, 200.0);
+}
+
+// Scale HX711 Zeroing (request from HTTP servers)
+void SetZero()
+{
+  Serial.println("HX711 Zeroing");
+  if (ST.SetZero)
+  {
+    ST.HX711_Block = true;
+    sensors.averange = scale.read_average(10);
+    _eep.avr = sensors.averange;
+    Serial.printf("Averange: %d \r\n", sensors.averange);
+    scale.set_offset(sensors.averange);
+    ST.HX711_Block = true;
+    ST.SetZero = false;
+  }
 }
 //========================================================================
 
@@ -1350,7 +1366,7 @@ void DisplayHandler(uint8_t item)
         " подождите..  \r\n"));
     disp.update();
 
-    sensors.averange = scale.read_average();
+    sensors.averange = scale.read_average(10);
     _eep.avr = sensors.averange;
     Serial.printf("Averange: %d \r\n", sensors.averange);
     scale.set_offset(sensors.averange);
@@ -1418,7 +1434,6 @@ void GetBatVoltage(void)
   sensors.voltage = _mv;
 }
 //========================================================================
-
 
 /* Method to print the reason by which ESP32
 has been awaken from sleep

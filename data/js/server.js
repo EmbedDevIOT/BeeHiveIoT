@@ -114,41 +114,11 @@ function BNotificUPD(){
     xml.send();
 }
 
-function AllDataUPD() {
-    let xml = new XMLHttpRequest();
-    let buf = "?";
-
-    // var sw = document.getElementById("sw_runtext")
-    // var isCheck = sw.checked;
-
-
-    buf += "TN=" + document.getElementById("carname").value + "&";
-    buf += "TNU=" + document.getElementById("carnum").value + "&";
-    // buf += "TI=" + document.getElementById("infotext").value + "&";
-
-    // if (isCheck) {
-    //     buf += "SW=" + 1 + "&";
-    // } else buf += "SW=" + 0 + "&";
-
-    var sw = document.getElementById("sw_hide");
-    var isCheck = sw.checked;
-
-    if (isCheck) {
-        buf += "SWH=" + 1;
-    } else buf += "SWH=" + 0;
-
-    // buf += "SP=" + document.getElementById("speed").value;
-
-    xml.open("GET", "TextUPD" + buf, 1);
-    xml.send();
-    setTimeout("BColUPD()", 200);
-    // console.log(xml);
-}
-
 function BSetZero(){
     let xml = new XMLHttpRequest();
     xml.open("GET", "WSetZero", 1);
     xml.send();
+    alert("Текущее значение весовой платформы принято за 0");
 }
 
 function BCalibrationSave(){
@@ -157,31 +127,14 @@ function BCalibrationSave(){
     buf += "WC=" + document.getElementById("cal").value;
     xml.open("GET", "WCalUPD" + buf, 1);
     xml.send();
-}
-
-function BColUPD() {
-    let xml = new XMLHttpRequest();
-    let buf = "?";
-
-    buf += "CC=" + document.getElementById("c_carnum").value + "&";
-    buf += "CT=" + document.getElementById("c_time").value + "&";
-    buf += "CD=" + document.getElementById("c_date").value + "&";
-    // buf += "CDY=" + document.getElementById("c_day").value + "&";
-    buf += "CTI=" + document.getElementById("c_tempin").value + "&";
-    buf += "CTO=" + document.getElementById("c_tempout").value + "&";
-    buf += "CSP=" + document.getElementById("c_speed").value;
-
-    xml.open("GET", "ColUPD" + buf, 1);
-    xml.send();
-    alert("Настройки сохранены. Обновление займет до 10 сек.");
-    console.log(xml);
+    alert("Параметры калибровки сохранены");
 }
 
 function BSysUPD() {
     let xml = new XMLHttpRequest();
     let buf = "?";
     buf += "T1O=" + document.getElementById("t1_offset").value + "&";
-    buf += "T2O=" + document.getElementById("t2_offset").value + "&";
+    buf += "T2O=" + document.getElementById("t2_offset").value;
 
     xml.open("GET", "SysUPD" + buf, 1);
     // console.log(xml);
@@ -195,13 +148,13 @@ function BTimeUPD() {
     let xml = new XMLHttpRequest();
     let buf = "?";
     buf += "T=" + document.getElementById("time").value + "&";
-    buf += "D=" + document.getElementById("date").value + "&";
+    buf += "D=" + document.getElementById("date").value;
     // buf += "GMT=" + document.getElementById("gmt").value;
 
     xml.open("GET", "TimeUPD" + buf, 1);
     console.log(xml);
     xml.send();
-    alert("Настройки сохранены.");
+    alert("Настройки времени сохранены.");
 }
 
 function BTimeAutoSet() {
@@ -220,23 +173,6 @@ function BTimeAutoSet() {
     alert("Настройки сохранены.");
 }
 
-
-function BTellmeTime() {
-    let xml = new XMLHttpRequest();
-    xml.open("GET", "BTTS", 1);
-    xml.send();
-}
-
-function BDoorState(state) {
-    let xml = new XMLHttpRequest();
-    if (state == 1) {
-        xml.open("GET", "BDS1", 1);
-    }
-    else if (state == 2) {
-        xml.open("GET", "BDS2", 1);
-    }
-    xml.send();
-}
 
 function BWiFiUPD() {
 

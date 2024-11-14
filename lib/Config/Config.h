@@ -153,6 +153,7 @@ struct SNS
   int signal = 0;
   float dsT = 0.0;      // Temperature DS18B20
   int8_t T1_offset = 0; // Temperature Offset T1 sensor
+  int8_t T2_offset = 0; // Temperature Offset T2 sensor
   float bmeT = 0.0;     // Temperature BME280
   int bmeH = 0.0;       // Humidity   BME280
   float bmeHcal = 4.2;  // Calibration factors
@@ -183,13 +184,11 @@ extern SNS sensors;
 struct Flag
 {
   bool WiFiEnable : 1;
-  bool BTSET = false;
-  bool BTUP = false;
-  bool BTDWN = false;
   bool debug = true;
   bool SMS1 = true;
   bool SMS2 = true;
   bool HX711_Block = false;
+  bool SetZero = false;
   bool Call_Block = false;
   uint8_t FirstStart = 0;
   uint8_t Calibration = 0;

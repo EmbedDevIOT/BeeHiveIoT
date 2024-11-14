@@ -9,21 +9,19 @@ void HTTPinit()
 {
   HTTP.begin();
   // ElegantOTA.begin(&HTTP); // Start ElegantOTA
-  HTTP.on("/update.json", UpdateData);
-  HTTP.on("/wcupd.json", UpdateStateWC);
-  HTTP.on("/SysUPD", SystemUpdate);
-  HTTP.on("/TimeUPD", TimeUpdate);
-  HTTP.on("/TextUPD", TextUpdate);
-  HTTP.on("/ColUPD", ColorUpdate);
-  HTTP.on("/SNUPD", SerialNumberUPD);
-  HTTP.on("/WCLUPD", WCLogiqUPD);
-  HTTP.on("/WiFiUPD", SaveSecurity);
-  HTTP.on("/BRBT", Restart);              // Restart MCU
-  HTTP.on("/BTTS", TimeToSpeech);         // Tell me Date an Time
-  HTTP.on("/BDS1", WC1DoorStateToSpeech); // Tell me Door state
-  HTTP.on("/BDS2", WC2DoorStateToSpeech); // Tell me Door state
-  HTTP.on("/FW", ShowSystemInfo);
-  HTTP.on("/BFRST", FactoryReset);               // Set default parametrs.
+  HTTP.on("/update.json", UpdateData); // Update Time and Data
+  HTTP.on("/state.json", UpdateState); // Update BeeHive state (request every 1s)
+  HTTP.on("/NotUPD", NotificationUPD); // Save and Update notification users data (time_sms1, time_sms2, phone_number)
+  HTTP.on("/SysUPD", SystemUpdate);    // Save System settings (temperature T1,T2 offset)
+  HTTP.on("/TimeUPD", TimeUpdate);     // RTC Data update
+  HTTP.on("/WSetZero", ScaleSetZero);  // Scale set zero.
+  HTTP.on("/WCalUPD", ScaleCalSave);   // Scale save cafibration factor.
+  HTTP.on("/WiFiUPD", SaveSecurity);   // Save WiFi data (SSID and PASS)
+  HTTP.on("/BRBT", Restart);           // Restart MCU
+  HTTP.on("/SNUPD", SerialNumberUPD);  // Service. Get Request Serial Number Update
+  HTTP.on("/FW", ShowSystemInfo);      // Service. Show Serial number and Firmware version
+  HTTP.on("/BFRST", FactoryReset);     // Set default parametrs.
+
   HTTP.onNotFound([]() {                         // Event "Not Found"
     if (!handleFileRead(HTTP.uri()))             // If function  handleFileRead (discription bellow) returned false in request for file searching in file syste
       HTTP.send(404, "text/plain", "Not Found"); // return message "File isn't found" error state 404 (not found )
@@ -94,6 +92,78 @@ void UpdateData()
 /*******************************************************************************************************/
 
 /*******************************************************************************************************/
+// BeeHive state dynamic update
+void UpdateState()
+{
+  String buf = "{";
+
+  buf += "\"w\":" + String(sensors.kg) + ",";
+  buf += "\"t1\":" + String(sensors.dsT) + ",";
+  buf += "\"t2\":" + String(sensors.bmeT) + ",";
+  buf += "\"h\":" + String(sensors.bmeH) + ",";
+  buf += "\"p\":" + String(sensors.bmeP_mmHg) + ",";
+  buf += "\"b\":" + String(sensors.voltage) + ",";
+  buf += "\"s\":" + sensors.signal;
+  buf += "}";
+
+  HTTP.send(200, "text/plain", buf);
+}
+/*******************************************************************************************************/
+
+/*******************************************************************************************************/
+void ScaleSetZero()
+{
+  ST.SetZero = true;
+  HTTP.send(200, "text/plain", "OK");
+}
+/*******************************************************************************************************/
+
+/*******************************************************************************************************/
+void ScaleCalSave()
+{
+  sensors.calib = HTTP.arg("WC").toFloat(); // weight calibration factor
+
+  SaveConfig();
+
+  Serial.printf("Calibration: %f \r\n", sensors.calib);
+  HTTP.send(200, "text/plain", "OK");
+}
+/*******************************************************************************************************/
+
+/*******************************************************************************************************/
+void NotificationUPD()
+{
+  char TempBuf[15];
+
+  struct _buf
+  {
+    uint8_t H = 0;
+    uint8_t M = 0;
+  } SMS1, SMS2;
+
+  HTTP.arg("SMS1").toCharArray(TempBuf, 10);
+  SMS1.H = atoi(strtok(TempBuf, ":"));
+  SMS1.M = atoi(strtok(NULL, ":"));
+
+  CFG.UserSendTime1 = SMS1.H;
+  Serial.printf("EEPROM: SMS_1: %02d \r\n", CFG.UserSendTime1);
+
+  HTTP.arg("SMS2").toCharArray(TempBuf, 10);
+  SMS2.H = atoi(strtok(TempBuf, ":"));
+  SMS2.M = atoi(strtok(NULL, ":"));
+
+  CFG.UserSendTime2 = SMS2.H;
+  Serial.printf("EEPROM: SMS_1: %02d \r\n", CFG.UserSendTime2);
+
+  CFG.phone = HTTP.arg("P");
+  Serial.print("Phone Number: ");
+  Serial.println(CFG.phone);
+
+  SaveConfig();
+
+  HTTP.send(200, "text/plain", "OK");
+}
+/*******************************************************************************************************/
 // Time and Date update
 void TimeUpdate()
 {
@@ -118,7 +188,6 @@ void TimeUpdate()
   S.MO = atoi(strtok(NULL, "-"));
   S.D = atoi(strtok(NULL, "-"));
 
-
   Clock.hour = S.H;
   Clock.minute = S.M;
   Clock.year = S.Y;
@@ -135,154 +204,31 @@ void TimeUpdate()
 
   RTC.setTime(Clock);
   SaveConfig();
-  
+
   Serial.println("Time Update");
   HTTP.send(200, "text/plain", "OK");
 }
 /*******************************************************************************************************/
 
 /*******************************************************************************************************/
+// System settings
 void SystemUpdate()
 {
-  CFG.T1_offset = HTTP.arg("T1O").toInt();
-  HCONF.T2_offset = HTTP.arg("T2O").toInt();
-  HCONF.bright = HTTP.arg("BR").toInt();
-  HCONF.volume = HTTP.arg("VOL").toInt();
+  sensors.T1_offset = HTTP.arg("T1O").toInt();
+  sensors.T2_offset = HTTP.arg("T2O").toInt();
 
-#ifndef DEBUG
-  Serial.printf("T1_OFFset: %d", HCONF.T1_offset);
-  Serial.println();
-  Serial.printf("T2_OFFset: %d", HCONF.T2_offset);
-  Serial.println();
-  Serial.printf("Brigh: %d", HCONF.bright);
-  Serial.println();
-  Serial.printf("Volume: %d", HCONF.volume);
-  Serial.println();
-#endif
+  // #ifndef DEBUG
+  Serial.printf("T1_OFFset: %d \r\n", sensors.T1_offset);
+  Serial.printf("T2_OFFset: %d \r\n", sensors.T2_offset);
+  // #endif
 
   SaveConfig();
-  STATE.StaticUPD = true;
-  STATE.cnt_Supd = 0;
-  STATE.VolumeUPD = true;
-
   // Show Led state (add function)
   Serial.println("System Update");
   HTTP.send(200, "text/plain", "OK");
 }
 /*******************************************************************************************************/
 
-/*******************************************************************************************************/
-void TextUpdate()
-{
-  char TempBuf[10];
-  char msg[512] = {0};
-
-  struct _txt
-  {
-    char TN[17];     // car_name
-    uint8_t TNU = 0; // car num
-    bool SWH = false;
-  } T;
-
-  HTTP.arg("TN").toCharArray(T.TN, 17);
-  T.TNU = HTTP.arg("TNU").toInt();
-
-  T.SWH = HTTP.arg("SWH").toInt();
-
-  memset(UserText.carname, 0, strlen(UserText.carname));
-  strcat(UserText.carname, T.TN);
-
-  UserText.carnum = T.TNU;
-
-  // Если новое состояние != старому
-  if (T.SWH != UserText.hide_t)
-  {
-    UserText.hide_t = T.SWH;
-
-    // SendXMLDataD();
-  }
-
-  // #ifndef DEBUG
-  Serial.printf("Name: ");
-  Serial.printf(T.TN);
-  Serial.println(msg);
-
-  Serial.printf("CarNum: ");
-  Serial.println(T.TNU);
-
-  Serial.printf("Hide Carnum: %d", T.SWH);
-  Serial.println();
-  // #endif
-
-  SaveConfig();
-  // ShowLoadJSONConfig();
-
-  // Show Led state (add function)
-
-  Serial.println("Text Update");
-  HTTP.send(200, "text/plain", "OK");
-}
-/*******************************************************************************************************/
-
-/*******************************************************************************************************/
-void ColorUpdate()
-{
-  struct _col
-  {
-    // uint8_t CDY = HTTP.arg("CDY").toInt();   // color day weeks
-    uint8_t CC = HTTP.arg("CC").toInt();   // color car num
-    uint8_t CT = HTTP.arg("CT").toInt();   // color time
-    uint8_t CD = HTTP.arg("CD").toInt();   // color date
-    uint8_t CTI = HTTP.arg("CTI").toInt(); // color temp IN
-    uint8_t CTO = HTTP.arg("CTO").toInt(); // color temp OUT
-    uint8_t CSP = HTTP.arg("CSP").toInt(); // color speed
-  } C;
-
-  // #ifndef DEBUG
-  //   Serial.printf("Color CarNum: %d", C.CC);
-  //   Serial.println();
-  //   Serial.printf("Color InfoText: %d", C.CI);
-  //   Serial.println();
-  //   Serial.printf("Color Time: %d", C.CT);
-  //   Serial.println();
-  //   Serial.printf("Color Date: %d", C.CD);
-  //   Serial.println();
-  //   Serial.printf("Color TempIN: %d", C.CTI);
-  //   Serial.println();
-  //   Serial.printf("Color TempOUT: %d", C.CTO);
-  //   Serial.println();
-  // #endif
-
-  ColorSet(&col_carnum, C.CC);
-  ColorSet(&col_time, C.CT);
-  ColorSet(&col_date, C.CD);
-  // ColorSet(&col_day, C.CDY);
-  ColorSet(&col_tempin, C.CTI);
-  ColorSet(&col_tempout, C.CTO);
-  ColorSet(&col_speed, C.CSP);
-
-  SaveConfig();
-  STATE.StaticUPD = true;
-  STATE.cnt_Supd = 0;
-  // ShowLoadJSONConfig();
-
-  Serial.println("Сolor Update");
-  HTTP.send(200, "text/plain", "OK");
-}
-
-/*******************************************************************************************************/
-/*******************************************************************************************************/
-void WCLogiqUPD(void)
-{
-  HCONF.WCL = HTTP.arg("WCL").toInt();   // WC_STATE_LOGIQ
-  HCONF.WCSS = HTTP.arg("WCSS").toInt(); // WC_SENSOR_SIGNAL
-  HCONF.WCGS = HTTP.arg("WCGS").toInt(); // WC_SENSOR_GET_SIGNAL
-
-  SaveConfig();
-  Serial.printf("WCL: %d WCSS: %d WCGS: %d \r\n", HCONF.WCL, HCONF.WCSS, HCONF.WCGS);
-  HTTP.send(200, "text/plain", "Serial Number set");
-}
-/*******************************************************************************************************/
 /*******************************************************************************************************/
 void SerialNumberUPD()
 {
@@ -324,25 +270,6 @@ void SaveSecurity()
 }
 /*******************************************************************************************************/
 /*******************************************************************************************************/
-void TimeToSpeech()
-{
-  STATE.TTS = true;
-  HTTP.send(200, "text/plain", "OK");
-}
-/*******************************************************************************************************/
-/*******************************************************************************************************/
-void WC1DoorStateToSpeech()
-{
-  STATE.DSTS1 = true;
-  HTTP.send(200, "text/plain", "OK");
-}
-void WC2DoorStateToSpeech()
-{
-  STATE.DSTS2 = true;
-  HTTP.send(200, "text/plain", "OK");
-}
-/*******************************************************************************************************/
-/*******************************************************************************************************/
 // ESP Restart
 void Restart()
 {
@@ -359,7 +286,7 @@ void FactoryReset()
   SystemFactoryReset();
   SaveConfig();
   // EEP_Write();
-  ShowFlashSave();
+  // ShowFlashSave();
   Serial.println("#### SAVE DONE ####");
   ESP.restart(); // перезагружаем модуль
 }
