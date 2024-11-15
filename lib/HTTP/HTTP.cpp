@@ -113,7 +113,8 @@ void UpdateState()
 /*******************************************************************************************************/
 void ScaleSetZero()
 {
-  ST.SetZero = true;
+  // ST.SetZero = true;
+  System.DispMenu = ZeroSet;
   Serial.printf("Set Zero \r\n");
   HTTP.send(200, "text/plain", "OK");
 }

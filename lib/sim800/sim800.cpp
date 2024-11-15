@@ -174,6 +174,10 @@ void SendUserSMS()
     Serial.println();
 #endif
     // #ifndef DEBUG
-    sendSMS(CFG.phone, buf);
+    String phone = "+";
+    phone += CFG.phone;
+
+    Serial.printf("SMS to Phone: %s \r\n",phone);
+    sendSMS(phone, buf);
     // #endif
 }

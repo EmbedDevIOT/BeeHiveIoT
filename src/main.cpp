@@ -67,7 +67,7 @@ SemaphoreHandle_t call_mutex;
 //=======================================================================
 
 //================================ PROTOTIPs =============================
-void StartingInfo(void);
+void OledShowState(uint8_t state);
 void ButtonHandler(void);
 void DisplayHandler(uint8_t item);
 void printPointer(uint8_t pointer);
@@ -99,7 +99,11 @@ void TaskCore0(void *pvParameters)
     {
       if (!ST.HX711_Block)
         GetWeight();
-      SetZero();
+
+      if (ST.SetZero)
+      {
+        SetZero();
+      }
     }
     vTaskDelay(500 / portTICK_RATE_MS);
   }
@@ -159,7 +163,7 @@ void Task1000ms(void *pvParameters)
         block_timer++;
         if (!ST.Call_Block)
         {
-          // GetLevel();
+          GetLevel();
         }
       }
 
@@ -224,27 +228,101 @@ void Task5s(void *pvParametrs)
 }
 
 //=======================================================================
-void StartingInfo()
+void OledShowState(uint8_t state)
 {
   char msg[32];
-  disp.clear();
 
-  disp.setScale(2); // масштаб текста (1..4)
-  disp.setCursor(20, 3);
-  sprintf(msg, "Beehive");
-  disp.print(msg);
-  Serial.println(msg);
+  switch (state)
+  {
+  case _Logo:
+    disp.clear();
+    disp.setScale(2); // масштаб текста (1..4)
+    disp.setCursor(20, 3);
+    sprintf(msg, "Beehive");
+    disp.print(msg);
+    Serial.println(msg);
 
-  disp.setScale(1);
-  disp.setCursor(20, 7);
-  sprintf(msg, "firmware:%s", CFG.fw);
-  disp.print(msg);
-  Serial.println(msg);
+    disp.setScale(1);
+    disp.setCursor(20, 7);
+    sprintf(msg, "firmware:%s", CFG.fw);
+    disp.print(msg);
+    Serial.println(msg);
 
-  disp.update();
-  vTaskDelay(1000 / portTICK_PERIOD_MS);
+    disp.update();
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
+    disp.clear();
+    break;
+  case _RTC:
+    disp.setScale(1);
+    disp.setCursor(1, 1);
+    sprintf(msg, "RTC");
+    disp.print(msg);
+    disp.setCursor(110, 1);
+    sprintf(msg, "OK");
+    disp.print(msg);
+    disp.update();
+    break;
+  case _SPIFSS:
+    disp.setScale(1);
+    disp.setCursor(1, 2);
+    sprintf(msg, "SPIFFS");
+    disp.print(msg);
+    disp.setCursor(110, 2);
+    sprintf(msg, "OK");
+    disp.print(msg);
+    disp.update();
+    break;
+  case _Scale:
+    disp.setScale(1);
+    disp.setCursor(1, 3);
+    sprintf(msg, "Scale");
+    disp.print(msg);
+    disp.setCursor(110, 3);
+    sprintf(msg, "OK");
+    disp.print(msg);
+    disp.update();
+    break;
+  case _Sensors:
+    disp.setScale(1);
+    disp.setCursor(1, 4);
+    sprintf(msg, "Sensors");
+    disp.print(msg);
+    disp.setCursor(110, 4);
+    sprintf(msg, "OK");
+    disp.print(msg);
+    disp.update();
+    break;
+  case _Modem:
+    disp.setScale(1);
+    disp.setCursor(1, 5);
+    sprintf(msg, "Modem");
+    disp.print(msg);
+    disp.setCursor(110, 5);
+    sprintf(msg, "OK");
+    disp.print(msg);
+    disp.update();
+    break;
+  case _WiFi_IP:
+    disp.clear();
+    disp.setScale(2);
+    disp.setCursor(45, 1);
+    sprintf(msg, "WiFi");
+    disp.print(msg);
+    Serial.println(msg);
 
-  disp.clear();
+    disp.setScale(2);
+    disp.setCursor(1, 5);
+    sprintf(msg, "%d.%d.%d.%d", CFG.IP1, CFG.IP2, CFG.IP3, CFG.IP4);
+    disp.print(msg);
+    Serial.println(msg);
+
+    disp.update();
+    vTaskDelay(2500 / portTICK_PERIOD_MS);
+    disp.clear();
+    break;
+  default:
+    break;
+  }
 }
 //=======================================================================
 
@@ -263,7 +341,7 @@ void setup()
   disp.clear();
   Serial.println(F("OLED...Done"));
   // Show starting info
-  StartingInfo();
+  OledShowState(_Logo);
   // RTC INIT
   RTC.begin();
   // RTC battery crash
@@ -272,6 +350,7 @@ void setup()
     RTC.setTime(COMPILE_TIME);
   }
   Clock = RTC.getTime();
+  OledShowState(_RTC);
   Serial.println(F("RTC...Done"));
 
   // SPIFFS
@@ -280,20 +359,20 @@ void setup()
     Serial.println("An Error has occurred while mounting SPIFFS");
     return;
   }
-  LoadConfig();         // Load configuration from config.json files
-  ShowLoadJSONConfig(); // Show load configuration
+  else
+  {
+    LoadConfig();          // Load configuration from config.json files
+    ShowLoadJSONConfig();  // Show load configuration
+    if (SerialNumConfig()) // Set Serial Number
+      SaveConfig();
+    OledShowState(_SPIFSS);
+  }
 
-  // Set Serial Number
-  if (SerialNumConfig())
-    SaveConfig();
-
-  // EEPROM Init
-  // EEPROM_Init();
-
-  // HX711 Init
+  // // HX711 Init
   scale.begin(HX_DT, HX_CLK);
   scale.set_scale();
   scale.set_offset(sensors.averange);
+  OledShowState(_Scale);
   Serial.println(F("HX711 init done"));
 
   // BME and DS SENSOR INIT
@@ -304,11 +383,13 @@ void setup()
   vTaskDelay(20 / portTICK_PERIOD_MS);
   // Battery pin init
   pinMode(BAT, INPUT);
+  OledShowState(_Sensors);
   Serial.println(F("Battery Init...Done"));
   // SIM800 INIT
   vTaskDelay(1000 / portTICK_PERIOD_MS);
   sim800_init(9600, 16, 17);
   sim800_conf();
+  OledShowState(_Modem);
   Serial.println(F("SIM800 Init...Done"));
   disp.clear();
 
@@ -322,6 +403,7 @@ void setup()
   WIFIinit();
   vTaskDelay(500 / portTICK_PERIOD_MS);
   Serial.println("Wifi Enable");
+  OledShowState(_WiFi_IP);
 
   HTTPinit(); // HTTP server initialisation
   vTaskDelay(500 / portTICK_PERIOD_MS);
@@ -534,6 +616,7 @@ void ButtonHandler()
   if (btVirt.click() && System.DispMenu == Action)
   {
     Serial.println("Set zero");
+    ST.SetZero = true;
     System.DispMenu = ZeroSet;
   }
   // DOWN
@@ -590,16 +673,14 @@ void GetWeight()
 // Scale HX711 Zeroing (request from HTTP servers)
 void SetZero()
 {
-  if (ST.SetZero)
-  {
-    ST.HX711_Block = true;
-    Serial.println("HX711 Zeroing");
-    sensors.averange = scale.read_average(5);
-    Serial.printf("Averange: %d \r\n", sensors.averange);
-    scale.set_offset(sensors.averange);
-    ST.HX711_Block = false;
-    ST.SetZero = false;
-  }
+  ST.HX711_Block = true;
+  Serial.println("HX711 Zeroing");
+  sensors.averange = scale.read_average(5);
+  Serial.printf("Averange: %d \r\n", sensors.averange);
+  scale.set_offset(sensors.averange);
+  ST.HX711_Block = false;
+  ST.SetZero = false;
+  vTaskDelay(500 / portTICK_PERIOD_MS);
 }
 //========================================================================
 
@@ -1135,6 +1216,13 @@ void DisplayHandler(uint8_t item)
   case SMS_NUM:
   {
     int currentDigit = 0;
+    // Converting Phone Number (String to char) 
+    CFG.phone.toCharArray(CFG.phoneChar, 11); 
+    // Converting Phone Number (Char to Int array)
+    for (int i = 0; i < 10; i++)
+    {
+      CFG.phoneInt[i] = (CFG.phoneChar[i] - '0');
+    }
 
     disp.clear();
     disp.setScale(2);
@@ -1150,7 +1238,7 @@ void DisplayHandler(uint8_t item)
       }
       else
         disp.invertText(false);
-      // disp.print(_eep.num[i]);
+      disp.print(CFG.phoneInt[i]);
     }
 
     disp.update();
@@ -1163,7 +1251,7 @@ void DisplayHandler(uint8_t item)
 
       if (btUP.click())
       {
-        // _eep.num[currentDigit] = (_eep.num[currentDigit] + 1) % 10;
+        CFG.phoneInt[currentDigit] = (CFG.phoneInt[currentDigit] + 1) % 10;
 
         disp.clear();
         disp.setScale(2);
@@ -1175,14 +1263,14 @@ void DisplayHandler(uint8_t item)
         for (int i = 0; i < 10; i++)
         {
           (i == currentDigit) ? disp.invertText(true) : disp.invertText(false);
-          // disp.print(_eep.num[i]);
+          disp.print(CFG.phoneInt[i]);
         }
         disp.update();
       }
 
       if (btDWN.click())
       {
-        // _eep.num[currentDigit] = (_eep.num[currentDigit] - 1 + 10) % 10;
+        CFG.phoneInt[currentDigit] = (CFG.phoneInt[currentDigit] - 1 + 10) % 10;
 
         disp.clear();
         disp.setScale(2);
@@ -1194,7 +1282,7 @@ void DisplayHandler(uint8_t item)
         for (int i = 0; i < 10; i++)
         {
           (i == currentDigit) ? disp.invertText(true) : disp.invertText(false);
-          // disp.print(_eep.num[i]);
+          disp.print(CFG.phoneInt[i]);
         }
         disp.update();
       }
@@ -1217,26 +1305,25 @@ void DisplayHandler(uint8_t item)
         for (int i = 0; i < 10; i++)
         {
           (i == currentDigit) ? disp.invertText(true) : disp.invertText(false);
-          // disp.print(_eep.num[i]);
+          disp.print(CFG.phoneInt[i]);
         }
         disp.update();
       }
     }
-
+    // Converting PhoneNumber (Int to Char )
     for (int i = 0; i < 10; i++)
     {
-      // charPhoneNumber[i] = (char)(_eep.num[i] + '0');
+      CFG.phoneChar[i] = (char)(CFG.phoneInt[i] + '0');
     }
 
-    SaveConfig();
-
     CFG.phone.clear(); // Clear String
-    CFG.phone += '+';
-    CFG.phone += CFG.iso_code;
-    CFG.phone += charPhoneNumber;
+    // CFG.phone += '+';
+    // CFG.phone += CFG.iso_code;
+    CFG.phone += CFG.phoneChar;
 
-    Serial.printf("EEPROM: SMS Number: %s", CFG.phone);
+    Serial.printf("Save SMS Number: %s", CFG.phone);
     Serial.println();
+    SaveConfig();
 
     System.DispMenu = Action;
     disp_ptr = 0;
@@ -1264,7 +1351,7 @@ void DisplayHandler(uint8_t item)
     disp.print(F(
         " Установка \r\n"
         "   нуля \r\n"
-        " подождите..  \r\n"));
+        " подождите  \r\n"));
     disp.update();
 
     st = false;

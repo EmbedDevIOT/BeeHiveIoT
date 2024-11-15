@@ -79,6 +79,16 @@ enum menu
   ZeroSet
 };
 
+enum loading
+{
+  _Logo = 0,
+  _RTC,
+  _SPIFSS,
+  _Scale,
+  _Sensors,
+  _Modem,
+  _WiFi_IP
+};
 
 //=======================================================================
 
@@ -118,7 +128,9 @@ struct GlobalConfig
   int8_t t1_sms = 0;
   int8_t t2_sms = 0;
   int8_t num[10] = {0};
-  String phone = ""; // номер телефона в международном формате
+  String phone = "";    // Phone Number (String)
+  char phoneChar[11];   // Phone Number (to Char)
+  int phoneInt[11] = {0};
   uint16_t iso_code = 7;
   int8_t UserSendTime1 = 0;
   int8_t UserSendTime2 = 0;
@@ -185,4 +197,4 @@ void DebugControl(void);
 void SystemFactoryReset(void);
 void I2C_Scanning(void);
 //============================================================================
-#endif // _Config_H
+#endif // _Config_
