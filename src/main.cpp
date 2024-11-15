@@ -21,7 +21,7 @@ SNS sensors;
 SYTM System;
 DateTime Clock;
 Flag ST;
-EEP_D _eep;
+// EEP_D _eep;
 //=======================================================================
 
 //============================ GLOBAL VARIABLES =========================
@@ -34,6 +34,7 @@ uint16_t tmrSec = 0;
 uint16_t tmrMin = 0;
 uint8_t disp_ptr = 0;
 bool st = false; // menu state ()selection
+bool i2c_wakeup = false;
 
 char charPhoneNumber[11];
 
@@ -76,12 +77,13 @@ void GetBMEData(void);
 void GetWeight(void);
 void ShowDBG(void);
 void Notification(void);
-
+void SetZero(void);
 void TaskCore0(void *pvParameters);
 void TaskCore1(void *pvParameters);
 void Task500ms(void *pvParameters);
 void Task1000ms(void *pvParameters);
 void Task5s(void *pvParameters);
+void I2CwakeUP();
 //=======================================================================
 
 //=======================================================================
@@ -95,7 +97,9 @@ void TaskCore0(void *pvParameters)
   {
     if (!ST.Call_Block)
     {
-      GetWeight();
+      if (!ST.HX711_Block)
+        GetWeight();
+      SetZero();
     }
     vTaskDelay(500 / portTICK_RATE_MS);
   }
@@ -127,7 +131,7 @@ void Task500ms(void *pvParameters)
     if (block_timer != 20)
     {
       // xSemaphoreTake(call_mutex, portMAX_DELAY);
-      IncommingRing();
+      // IncommingRing();
       Notification();
       Clock = RTC.getTime();
       // xSemaphoreTake(call_mutex, portMAX_DELAY);
@@ -155,7 +159,7 @@ void Task1000ms(void *pvParameters)
         block_timer++;
         if (!ST.Call_Block)
         {
-          GetLevel();
+          // GetLevel();
         }
       }
 
@@ -219,107 +223,6 @@ void Task5s(void *pvParametrs)
   }
 }
 
-//========================================================================
-/*
-Reading Calibration data from EEPROM. Calibration metodic
-* Calibration State
-* Calibration factor HX711
-* First Start Flag
-* Container weight.
-*/
-void EEPROM_Init()
-{
-  // ADRs: 0 - Calibration 4 - State_Calibration (Done or False) 5 - FirstStart State
-  EEPROM.begin(100);
-
-  disp.setScale(2);
-  disp.setCursor(13, 3);
-  disp.print("Загрузка");
-  disp.update();
-
-  Serial.print("EEPROM: CalibST: ");
-  EEPROM.get(0, _eep);
-  Serial.printf("ST_Cal: %d \r\n", _eep.st_cal);
-
-  // Сalibration (entred to press set button)
-  now = millis();
-  while (millis() - now < 2000)
-  {
-    btSET.tick();
-    if (btSET.press())
-    {
-      Serial.println(F("User cancel. Loading Default preset"));
-      _eep.st_cal = CALL_FAIL;
-    }
-  }
-
-  // Если Весы не откалиброваны
-  if (_eep.st_cal != EEP_DONE)
-  {
-    Serial.println(F("Set Default Preset"));
-    _eep.st_cal = 200;
-    // _eep.cal_f = -0.830;
-    _eep.cal_f = -0.77;
-    _eep.avr = -270985;
-    // _eep.cal_f = 0.824;
-    // _eep.avr = -54200;
-    _eep.num[10] = {0};
-    _eep.t1_sms = 9;
-    _eep.t2_sms = 18;
-
-    EEPROM.put(0, _eep);
-    EEPROM.commit();
-
-    delay(100);
-    Serial.println(F("DONE"));
-  }
-
-  Serial.printf("ST_CAL: %d \r\n", _eep.st_cal);
-  Serial.printf("CAL_EEP: %f \r\n", _eep.cal_f);
-  Serial.printf("AVR: %d \r\n", _eep.avr);
-  delay(500);
-
-  sensors.calib = _eep.cal_f;
-  sensors.averange = _eep.avr;
-  CFG.UserSendTime1 = _eep.t1_sms;
-  CFG.UserSendTime2 = _eep.t2_sms;
-
-  // Reading Time SMS Notifications
-  if (CFG.UserSendTime1 == -1)
-  {
-    CFG.UserSendTime1 = 9;
-  }
-  Serial.printf("EEPROM: SMS_1: %02d \r\n", CFG.UserSendTime1);
-
-  if (CFG.UserSendTime2 == -1)
-  {
-    CFG.UserSendTime2 = 20;
-  }
-  Serial.printf("EEPROM: SMS_2: %02d \r\n", CFG.UserSendTime2);
-
-  // protect to 255 or negative value
-  for (uint8_t i = 0; i < 10; i++)
-  {
-    if (_eep.num[i] > 9 || _eep.num[i] < 0)
-    {
-      _eep.num[i] = 0;
-    }
-  }
-  // Set string User Phone Number
-  for (int i = 0; i < 10; i++)
-  {
-    charPhoneNumber[i] = (char)(_eep.num[i] + '0');
-  }
-  CFG.phone += '+';
-  CFG.phone += CFG.iso_code;
-  CFG.phone += charPhoneNumber;
-  Serial.print("EEPROM: Phone: ");
-  Serial.println(CFG.phone);
-
-  Serial.println(F("EEPROM_INIT_Done.."));
-}
-//=======================================================================
-
 //=======================================================================
 void StartingInfo()
 {
@@ -327,8 +230,8 @@ void StartingInfo()
   disp.clear();
 
   disp.setScale(2); // масштаб текста (1..4)
-  disp.setCursor(10, 3);
-  sprintf(msg, "Beekeeper");
+  disp.setCursor(20, 3);
+  sprintf(msg, "Beehive");
   disp.print(msg);
   Serial.println(msg);
 
@@ -349,7 +252,7 @@ void StartingInfo()
 void setup()
 {
   CFG.fw = "1.0.0";
-  CFG.fwdate = "13.11.24";
+  CFG.fwdate = "15.11.24";
   // UART Init
   Serial.begin(UARTSpeed);
   Serial1.begin(MODEMSpeed);
@@ -484,6 +387,7 @@ void setup()
 void loop()
 {
   // HTTP Handling else WiFi = ON (Counter 10 min)
+  IncommingRing();
   if (ST.WiFiEnable)
   {
     HandleClient();
@@ -530,7 +434,7 @@ void ButtonHandler()
   btUP.tick();
   btDWN.tick();
   btVirt.tick(btUP, btDWN);
-
+  // Button SET
   if (btSET.click())
   {
     Serial.println("Btn SET click");
@@ -608,7 +512,7 @@ void ButtonHandler()
     tmrSec = 0;
     disp.clear();
   }
-
+  // Button UP
   if (btUP.click() || btUP.hold())
   {
     Serial.println("Btn UP click");
@@ -619,20 +523,20 @@ void ButtonHandler()
       disp_ptr = constrain(disp_ptr + 1, 0, ITEMS - 1);
 
     sensors.calib += 0.01;
-    _eep.cal_f = sensors.calib;
 
-    Serial.printf("C:%0.4f \r\n", sensors.calib);
+    Serial.printf("Save CAL:%0.4f \r\n", sensors.calib);
+    SaveConfig();
 
     // Serial.printf("ptr:%d \r\n", disp_ptr);
     Serial.println();
   }
-
+  // UP + DOWN
   if (btVirt.click() && System.DispMenu == Action)
   {
     Serial.println("Set zero");
     System.DispMenu = ZeroSet;
   }
-
+  // DOWN
   if (btDWN.click() || btDWN.hold())
   {
     Serial.println("Btn DWN click");
@@ -643,9 +547,8 @@ void ButtonHandler()
       disp_ptr = constrain(disp_ptr - 1, 0, ITEMS - 1);
 
     sensors.calib -= 0.01;
-    _eep.cal_f = sensors.calib;
-
-    Serial.printf("C: %0.4f \r\n", sensors.calib);
+    Serial.printf("Save CAL:%0.4f \r\n", sensors.calib);
+    SaveConfig();
 
     // Serial.printf("ptr:%d \r\n", disp_ptr);
   }
@@ -687,15 +590,14 @@ void GetWeight()
 // Scale HX711 Zeroing (request from HTTP servers)
 void SetZero()
 {
-  Serial.println("HX711 Zeroing");
   if (ST.SetZero)
   {
     ST.HX711_Block = true;
-    sensors.averange = scale.read_average(10);
-    _eep.avr = sensors.averange;
+    Serial.println("HX711 Zeroing");
+    sensors.averange = scale.read_average(5);
     Serial.printf("Averange: %d \r\n", sensors.averange);
     scale.set_offset(sensors.averange);
-    ST.HX711_Block = true;
+    ST.HX711_Block = false;
     ST.SetZero = false;
   }
 }
@@ -963,7 +865,6 @@ void DisplayHandler(uint8_t item)
         if (btUP.click())
         {
           sensors.calib += 0.01;
-          _eep.cal_f = sensors.calib;
 
           Serial.printf("C:%0.4f \r\n", sensors.calib);
           GetWeight();
@@ -1002,7 +903,6 @@ void DisplayHandler(uint8_t item)
         if (btDWN.click())
         {
           sensors.calib -= 0.01;
-          _eep.cal_f = sensors.calib;
 
           Serial.printf("C: %0.4f \r\n", sensors.calib);
           GetWeight();
@@ -1038,10 +938,8 @@ void DisplayHandler(uint8_t item)
       // Exit Set CAlibration and SAVE settings
       if (btSET.click())
       {
-        EEPROM.put(0, _eep);
-        EEPROM.commit();
-
-        Serial.println(F("EEPROM: Calibration SAVE"));
+        SaveConfig();
+        Serial.println(F("Calibration SAVE"));
 
         System.DispMenu = Action;
         disp_ptr = 0;
@@ -1134,11 +1032,9 @@ void DisplayHandler(uint8_t item)
       // Exit Set Calibration and SAVE settings
       if (btSET.click())
       {
-        _eep.t1_sms = CFG.UserSendTime1;
-        EEPROM.put(0, _eep);
-        EEPROM.commit();
+        SaveConfig();
 
-        Serial.println(F("EEPROM: SMS_1_MSG SAVE"));
+        Serial.println(F("SMS_1_MSG SAVE"));
 
         disp.clear();
         disp.invertText(false);
@@ -1210,11 +1106,9 @@ void DisplayHandler(uint8_t item)
       // Exit Set Calibration and SAVE settings
       if (btSET.click())
       {
-        _eep.t2_sms = CFG.UserSendTime2;
-        EEPROM.put(0, _eep);
-        EEPROM.commit();
+        SaveConfig();
 
-        Serial.println(F("EEPROM: SMS_2_MSG SAVE"));
+        Serial.println(F("SMS_2_MSG SAVE"));
 
         System.DispMenu = Action;
         disp_ptr = 0;
@@ -1256,7 +1150,7 @@ void DisplayHandler(uint8_t item)
       }
       else
         disp.invertText(false);
-      disp.print(_eep.num[i]);
+      // disp.print(_eep.num[i]);
     }
 
     disp.update();
@@ -1269,7 +1163,7 @@ void DisplayHandler(uint8_t item)
 
       if (btUP.click())
       {
-        _eep.num[currentDigit] = (_eep.num[currentDigit] + 1) % 10;
+        // _eep.num[currentDigit] = (_eep.num[currentDigit] + 1) % 10;
 
         disp.clear();
         disp.setScale(2);
@@ -1281,14 +1175,14 @@ void DisplayHandler(uint8_t item)
         for (int i = 0; i < 10; i++)
         {
           (i == currentDigit) ? disp.invertText(true) : disp.invertText(false);
-          disp.print(_eep.num[i]);
+          // disp.print(_eep.num[i]);
         }
         disp.update();
       }
 
       if (btDWN.click())
       {
-        _eep.num[currentDigit] = (_eep.num[currentDigit] - 1 + 10) % 10;
+        // _eep.num[currentDigit] = (_eep.num[currentDigit] - 1 + 10) % 10;
 
         disp.clear();
         disp.setScale(2);
@@ -1300,7 +1194,7 @@ void DisplayHandler(uint8_t item)
         for (int i = 0; i < 10; i++)
         {
           (i == currentDigit) ? disp.invertText(true) : disp.invertText(false);
-          disp.print(_eep.num[i]);
+          // disp.print(_eep.num[i]);
         }
         disp.update();
       }
@@ -1323,7 +1217,7 @@ void DisplayHandler(uint8_t item)
         for (int i = 0; i < 10; i++)
         {
           (i == currentDigit) ? disp.invertText(true) : disp.invertText(false);
-          disp.print(_eep.num[i]);
+          // disp.print(_eep.num[i]);
         }
         disp.update();
       }
@@ -1331,11 +1225,10 @@ void DisplayHandler(uint8_t item)
 
     for (int i = 0; i < 10; i++)
     {
-      charPhoneNumber[i] = (char)(_eep.num[i] + '0');
+      // charPhoneNumber[i] = (char)(_eep.num[i] + '0');
     }
 
-    EEPROM.put(0, _eep);
-    EEPROM.commit();
+    SaveConfig();
 
     CFG.phone.clear(); // Clear String
     CFG.phone += '+';
@@ -1363,7 +1256,8 @@ void DisplayHandler(uint8_t item)
   case ZeroSet:
   {
     char msg[50];
-    ST.HX711_Block = true;
+    ST.SetZero = true;
+
     disp.clear();
     disp.setScale(2);
     disp.setCursor(0, 1);
@@ -1373,16 +1267,6 @@ void DisplayHandler(uint8_t item)
         " подождите..  \r\n"));
     disp.update();
 
-    sensors.averange = scale.read_average(10);
-    _eep.avr = sensors.averange;
-    Serial.printf("Averange: %d \r\n", sensors.averange);
-    scale.set_offset(sensors.averange);
-
-    EEPROM.put(0, _eep);
-    EEPROM.commit();
-    vTaskDelay(1000 / portTICK_PERIOD_MS);
-
-    ST.HX711_Block = false; // block task0;
     st = false;
     System.DispMenu = Action;
     disp_ptr = 0;
@@ -1472,4 +1356,12 @@ void print_wakeup_reason()
     Serial.printf("Wakeup was not caused by deep sleep: %d\n", wakeup_reason);
     break;
   }
+}
+
+void I2CwakeUP()
+{
+  Wire.begin();
+  bme.begin(0x76);
+  GetBMEData();
+  RTC.begin();
 }

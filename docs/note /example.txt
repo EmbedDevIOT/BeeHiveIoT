@@ -1,0 +1,100 @@
+//========================================================================
+/*
+Reading Calibration data from EEPROM. Calibration metodic
+* Calibration State
+* Calibration factor HX711
+* First Start Flag
+* Container weight.
+*/
+void EEPROM_Init()
+{
+  // ADRs: 0 - Calibration 4 - State_Calibration (Done or False) 5 - FirstStart State
+  EEPROM.begin(100);
+
+  disp.setScale(2);
+  disp.setCursor(13, 3);
+  disp.print("Загрузка");
+  disp.update();
+
+  Serial.print("EEPROM: CalibST: ");
+  EEPROM.get(0, _eep);
+  Serial.printf("ST_Cal: %d \r\n", _eep.st_cal);
+
+  // Сalibration (entred to press set button)
+  now = millis();
+  while (millis() - now < 2000)
+  {
+    btSET.tick();
+    if (btSET.press())
+    {
+      Serial.println(F("User cancel. Loading Default preset"));
+      _eep.st_cal = CALL_FAIL;
+    }
+  }
+
+  // Если Весы не откалиброваны
+  if (_eep.st_cal != EEP_DONE)
+  {
+    Serial.println(F("Set Default Preset"));
+    _eep.st_cal = 200;
+    // _eep.cal_f = -0.830;
+    _eep.cal_f = -0.77;
+    _eep.avr = -270985;
+    // _eep.cal_f = 0.824;
+    // _eep.avr = -54200;
+    _eep.num[10] = {0};
+    _eep.t1_sms = 9;
+    _eep.t2_sms = 18;
+
+    EEPROM.put(0, _eep);
+    EEPROM.commit();
+
+    delay(100);
+    Serial.println(F("DONE"));
+  }
+
+  Serial.printf("ST_CAL: %d \r\n", _eep.st_cal);
+  Serial.printf("CAL_EEP: %f \r\n", _eep.cal_f);
+  Serial.printf("AVR: %d \r\n", _eep.avr);
+  delay(500);
+
+  sensors.calib = _eep.cal_f;
+  sensors.averange = _eep.avr;
+  CFG.UserSendTime1 = _eep.t1_sms;
+  CFG.UserSendTime2 = _eep.t2_sms;
+
+  // Reading Time SMS Notifications
+  if (CFG.UserSendTime1 == -1)
+  {
+    CFG.UserSendTime1 = 9;
+  }
+  Serial.printf("EEPROM: SMS_1: %02d \r\n", CFG.UserSendTime1);
+
+  if (CFG.UserSendTime2 == -1)
+  {
+    CFG.UserSendTime2 = 20;
+  }
+  Serial.printf("EEPROM: SMS_2: %02d \r\n", CFG.UserSendTime2);
+
+  // protect to 255 or negative value
+  for (uint8_t i = 0; i < 10; i++)
+  {
+    if (_eep.num[i] > 9 || _eep.num[i] < 0)
+    {
+      _eep.num[i] = 0;
+    }
+  }
+  // Set string User Phone Number
+  for (int i = 0; i < 10; i++)
+  {
+    charPhoneNumber[i] = (char)(_eep.num[i] + '0');
+  }
+  CFG.phone += '+';
+  CFG.phone += CFG.iso_code;
+  CFG.phone += charPhoneNumber;
+  Serial.print("EEPROM: Phone: ");
+  Serial.println(CFG.phone);
+
+  Serial.println(F("EEPROM_INIT_Done.."));
+}
+//=======================================================================

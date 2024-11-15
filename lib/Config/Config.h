@@ -79,17 +79,6 @@ enum menu
   ZeroSet
 };
 
-// EEPROM
-struct EEP_D
-{
-  uint8_t st_cal = 0;
-  float cal_f = 0.0;
-  int32_t avr = 0;
-  int8_t t1_sms = 0;
-  int8_t t2_sms = 0;
-  int8_t num[10] = {0};
-};
-extern EEP_D _eep;
 
 //=======================================================================
 
@@ -164,22 +153,12 @@ struct SNS
   float units = 0.0;
   float kg = 0.0;
   float grms = 10.5;
-  uint32_t averange = 0;
+  int32_t averange = 0;
   uint32_t voltage = 0;
 };
 extern SNS sensors;
 //=======================================================================
-// struct EEP_Data
-// {
-//   uint8_t st_cal = 0;
-//   uint8_t st_fstart = 0;
-//   float calibr_factor = 0.0;
-//   float g_contain = 0.0;
-//   int8_t t1_sms = 0;
-//   int8_t t2_sms = 0;
-//   int8_t num[10] = {9, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-// };
-// extern EEP_Data eep_data;
+
 //=======================================================================
 struct Flag
 {

@@ -86,7 +86,7 @@ void I2C_Scanning(void)
 void ShowInfoDevice(void)
 {
   Serial.println(F("Starting..."));
-  Serial.println(F("Beekeeper"));
+  Serial.println(F("Beehive"));
   Serial.print(F("SN:"));
   Serial.println(CFG.sn);
   Serial.print(F("fw_date:"));

@@ -97,7 +97,6 @@ void SaveConfig()
   String jsonConfig = "";
   StaticJsonDocument<1024> doc;
 
-  // doc["carname"] = String(UserText.carname);
   doc["avr"] = sensors.averange;
   doc["cal"] = sensors.calib;
   doc["firmware"] = CFG.fw;
@@ -107,6 +106,10 @@ void SaveConfig()
   doc["ip4"] = CFG.IP4;
   doc["pass"] = CFG.APPAS;
   doc["phone"] = CFG.phone;
+
+  doc["sms1"] = ((CFG.UserSendTime1 < 10) ? "0" : "") + String(CFG.UserSendTime1) + ":00";
+  doc["sms2"] = ((CFG.UserSendTime2 < 10) ? "0" : "") + String(CFG.UserSendTime2) + ":00";
+
 
   doc["sn"] = CFG.sn;
   doc["ssid"] = CFG.APSSID;
@@ -129,7 +132,7 @@ void TestDeserializJSON()
   jsonConfig = configFile.readString();               // загружаем файл конфигурации из EEPROM в глобальную переменную JsonObject
   configFile.close();
 
-  StaticJsonDocument<2048> doc;
+  StaticJsonDocument<1024> doc;
   deserializeJson(doc, jsonConfig); //  вызовите парсер JSON через экземпляр jsonBuffer
 
   serializeJsonPretty(doc, Serial);

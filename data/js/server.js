@@ -118,7 +118,6 @@ function BSetZero(){
     let xml = new XMLHttpRequest();
     xml.open("GET", "WSetZero", 1);
     xml.send();
-    alert("Текущее значение весовой платформы принято за 0");
 }
 
 function BCalibrationSave(){
@@ -127,7 +126,6 @@ function BCalibrationSave(){
     buf += "WC=" + document.getElementById("cal").value;
     xml.open("GET", "WCalUPD" + buf, 1);
     xml.send();
-    alert("Параметры калибровки сохранены");
 }
 
 function BSysUPD() {

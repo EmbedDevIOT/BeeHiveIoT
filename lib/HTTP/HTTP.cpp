@@ -103,7 +103,7 @@ void UpdateState()
   buf += "\"h\":" + String(sensors.bmeH) + ",";
   buf += "\"p\":" + String(sensors.bmeP_mmHg) + ",";
   buf += "\"b\":" + String(sensors.voltage) + ",";
-  buf += "\"s\":" + sensors.signal;
+  buf += "\"s\":" + String(sensors.signal);
   buf += "}";
 
   HTTP.send(200, "text/plain", buf);
@@ -114,6 +114,7 @@ void UpdateState()
 void ScaleSetZero()
 {
   ST.SetZero = true;
+  Serial.printf("Set Zero \r\n");
   HTTP.send(200, "text/plain", "OK");
 }
 /*******************************************************************************************************/
