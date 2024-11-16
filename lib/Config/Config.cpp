@@ -150,10 +150,10 @@ void DebugControl()
   Serial.println(message);
   sprintf(message, "SIM800 Signal: %d", sensors.signal);
   Serial.println(message);
-  sprintf(message, "EEPROM: SMS_1 %02d | SMS_2 %02d", CFG.UserSendTime1, CFG.UserSendTime2);
+  sprintf(message, "SMS_1 %02d | SMS_2 %02d", CFG.UserSendTime1, CFG.UserSendTime2);
   Serial.println(message);
 
-  sprintf(message, "EEPROM: Phone: %s", CFG.phone);
+  sprintf(message, "Phone: %s", CFG.phone);
   Serial.println(message);
   // sprintf(message, "Block Timer: %d", block_timer);
   // Serial.println(message);

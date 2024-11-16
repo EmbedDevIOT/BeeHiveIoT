@@ -11,7 +11,7 @@
 #define TIME_TO_SLEEP 5        /* Time ESP32 will go to sleep (in seconds) */
 
 #define DISP_TIME (tmrMin == 10 && tmrSec == 0)
-#define ITEMS 5 // Main Menu Items
+
 //=======================================================================
 
 //============================== STRUCTURES =============================
@@ -187,6 +187,10 @@ void Task1000ms(void *pvParameters)
       if DISP_TIME
       {
         System.DispState = false;
+        ST.WiFiEnable = false;
+        Serial.println("WiFi_Disable");
+        WiFi.disconnect(true);
+        WiFi.mode(WIFI_OFF);
         Serial.println("TimeOut: Display - OFF");
         tmrMin = 0;
         tmrSec = 0;
@@ -265,7 +269,7 @@ void OledShowState(uint8_t state)
   case _SPIFSS:
     disp.setScale(1);
     disp.setCursor(1, 2);
-    sprintf(msg, "SPIFFS");
+    sprintf(msg, "FS");
     disp.print(msg);
     disp.setCursor(110, 2);
     sprintf(msg, "OK");
@@ -538,7 +542,7 @@ void ButtonHandler()
           disp.setScale(1);
           disp.print(F(
               "  Время:\r\n"
-              "  Калибровка:\r\n"
+              // "  Калибровка:\r\n"
               "  Оповещения:\r\n"
               // "  Аккумулятор:\r\n"
               "  Номер СМС:\r\n"
@@ -556,25 +560,25 @@ void ButtonHandler()
         }
       }
 
-      if (System.DispMenu == Menu && disp_ptr == 1)
-      {
-        System.DispMenu = Calib;
-        Serial.println("Calibration Menu:");
-      }
+      // if (System.DispMenu == Menu && disp_ptr == 1)
+      // {
+      //   System.DispMenu = Calib;
+      //   Serial.println("Calibration Menu:");
+      // }
 
-      if (System.DispMenu == Menu && disp_ptr == 2)
+      if (System.DispMenu == Menu && disp_ptr == 1)
       {
         System.DispMenu = Notifycation;
         Serial.println("Notifycation menu:");
       }
 
-      if (System.DispMenu == Menu && disp_ptr == 3)
+      if (System.DispMenu == Menu && disp_ptr == 2)
       {
         System.DispMenu = SMS_NUM;
         Serial.println("SMS Number:");
       }
 
-      if (System.DispMenu == Menu && disp_ptr == 4)
+      if (System.DispMenu == Menu && disp_ptr == 3)
       {
         Serial.println("Exit");
 
@@ -583,11 +587,17 @@ void ButtonHandler()
         st = false;
       }
     }
-    else // enable display
+    else // enable display and enable WiFi
     {
       disp.setPower(true);
       System.DispMenu = Action;
       System.DispState = true;
+
+      ST.WiFiEnable = true;
+      Serial.println("WiFi_Enable");
+      WIFIinit(AccessPoint);
+      vTaskDelay(500 / portTICK_PERIOD_MS);
+      HTTPinit(); // HTTP server initialisation
     }
 
     tmrMin = 0;
@@ -642,7 +652,7 @@ void ButtonHandler()
 // Get Data from BME Sensor
 void GetBMEData()
 {
-  sensors.bmeT = bme.readTemperature();
+  sensors.bmeT = bme.readTemperature() + sensors.T2_offset;
   sensors.bmeH = (int)bme.readHumidity() + sensors.bmeHcal;
   sensors.bmeP_hPa = bme.readPressure();
   sensors.bmeP_mmHg = (int)pressureToMmHg(sensors.bmeP_hPa);
@@ -655,6 +665,7 @@ void GetDSData()
 {
   ds18b20.requestTemperatures();
   sensors.dsT = ds18b20.getTempCByIndex(0);
+  sensors.dsT = sensors.dsT + sensors.T1_offset;
 }
 //========================================================================
 
@@ -667,6 +678,8 @@ void GetWeight()
   sensors.units = scale.get_units(5);
   sensors.grms = (sensors.units * 0.035274);
   sensors.kg = float(sensors.grms / 1000);
+  if (sensors.kg < 0)
+    sensors.kg = 0.0;
   sensors.kg = constrain(sensors.kg, 0.0, 200.0);
 }
 
@@ -697,7 +710,7 @@ void DisplayHandler(uint8_t item)
     disp.setScale(1);
     disp.print(F(
         "  Время:\r\n"
-        "  Калибровка:\r\n"
+        // "  Калибровка:\r\n"
         "  Оповещения:\r\n"
         "  Номер СМС:\r\n"
         "  Выход:\r\n"));
@@ -922,123 +935,123 @@ void DisplayHandler(uint8_t item)
     break;
   }
 
-  case Calib:
-  {
-    disp.clear();
-    disp.setScale(2);
-    disp.setCursor(0, 0);
-    disp.print("Калибровка");
-    disp.setCursor(17, 5);
-    disp.printf("  %0.2f  ", sensors.kg);
-    disp.update();
-    // ST.HX711_Block = true;
+    // case Calib:
+    // {
+    //   disp.clear();
+    //   disp.setScale(2);
+    //   disp.setCursor(0, 0);
+    //   disp.print("Калибровка");
+    //   disp.setCursor(17, 5);
+    //   disp.printf("  %0.2f  ", sensors.kg);
+    //   disp.update();
+    //   // ST.HX711_Block = true;
 
-    while (1)
-    {
-      btSET.tick();
-      btUP.tick();
-      btDWN.tick();
+    //   while (1)
+    //   {
+    //     btSET.tick();
+    //     btUP.tick();
+    //     btDWN.tick();
 
-      while (btUP.busy())
-      {
-        btUP.tick();
+    //     while (btUP.busy())
+    //     {
+    //       btUP.tick();
 
-        if (btUP.click())
-        {
-          sensors.calib += 0.01;
+    //       if (btUP.click())
+    //       {
+    //         sensors.calib += 0.01;
 
-          Serial.printf("C:%0.4f \r\n", sensors.calib);
-          GetWeight();
-          Serial.printf("W:%0.2f \r\n", sensors.kg);
+    //         Serial.printf("C:%0.4f \r\n", sensors.calib);
+    //         GetWeight();
+    //         Serial.printf("W:%0.2f \r\n", sensors.kg);
 
-          disp.clear();
-          disp.setScale(2);
-          disp.setCursor(0, 0);
-          disp.print("Калибровка");
-          disp.setCursor(17, 5);
-          disp.printf("  %0.2f  ", sensors.kg);
-          disp.update();
-        }
+    //         disp.clear();
+    //         disp.setScale(2);
+    //         disp.setCursor(0, 0);
+    //         disp.print("Калибровка");
+    //         disp.setCursor(17, 5);
+    //         disp.printf("  %0.2f  ", sensors.kg);
+    //         disp.update();
+    //       }
 
-        if (btUP.step())
-        {
-          sensors.calib += 0.1;
+    //       if (btUP.step())
+    //       {
+    //         sensors.calib += 0.1;
 
-          Serial.printf("C:%0.4f \r\n", sensors.calib);
-          GetWeight();
-          Serial.printf("W:%0.2f \r\n", sensors.kg);
+    //         Serial.printf("C:%0.4f \r\n", sensors.calib);
+    //         GetWeight();
+    //         Serial.printf("W:%0.2f \r\n", sensors.kg);
 
-          disp.clear();
-          disp.setScale(2);
-          disp.setCursor(0, 0);
-          disp.print("Калибровка");
-          disp.setCursor(17, 5);
-          disp.printf("  %0.2f  ", sensors.kg);
-          disp.update();
-        }
-      }
+    //         disp.clear();
+    //         disp.setScale(2);
+    //         disp.setCursor(0, 0);
+    //         disp.print("Калибровка");
+    //         disp.setCursor(17, 5);
+    //         disp.printf("  %0.2f  ", sensors.kg);
+    //         disp.update();
+    //       }
+    //     }
 
-      while (btDWN.busy())
-      {
-        btDWN.tick();
-        if (btDWN.click())
-        {
-          sensors.calib -= 0.01;
+    //     while (btDWN.busy())
+    //     {
+    //       btDWN.tick();
+    //       if (btDWN.click())
+    //       {
+    //         sensors.calib -= 0.01;
 
-          Serial.printf("C: %0.4f \r\n", sensors.calib);
-          GetWeight();
-          Serial.printf("W: %0.2f \r\n", sensors.kg);
+    //         Serial.printf("C: %0.4f \r\n", sensors.calib);
+    //         GetWeight();
+    //         Serial.printf("W: %0.2f \r\n", sensors.kg);
 
-          disp.clear();
-          disp.setScale(2);
-          disp.setCursor(0, 0);
-          disp.print("Калибровка");
-          disp.setCursor(17, 5);
-          disp.printf("  %0.2f  ", sensors.kg);
-          disp.update();
-        }
+    //         disp.clear();
+    //         disp.setScale(2);
+    //         disp.setCursor(0, 0);
+    //         disp.print("Калибровка");
+    //         disp.setCursor(17, 5);
+    //         disp.printf("  %0.2f  ", sensors.kg);
+    //         disp.update();
+    //       }
 
-        if (btDWN.step())
-        {
-          sensors.calib -= 0.1;
+    //       if (btDWN.step())
+    //       {
+    //         sensors.calib -= 0.1;
 
-          Serial.printf("C: %0.4f \r\n", sensors.calib);
-          GetWeight();
-          Serial.printf("W: %0.2f \r\n", sensors.kg);
+    //         Serial.printf("C: %0.4f \r\n", sensors.calib);
+    //         GetWeight();
+    //         Serial.printf("W: %0.2f \r\n", sensors.kg);
 
-          disp.clear();
-          disp.setScale(2);
-          disp.setCursor(0, 0);
-          disp.print("Калибровка");
-          disp.setCursor(17, 5);
-          disp.printf("  %0.2f  ", sensors.kg);
-          disp.update();
-        }
-      }
+    //         disp.clear();
+    //         disp.setScale(2);
+    //         disp.setCursor(0, 0);
+    //         disp.print("Калибровка");
+    //         disp.setCursor(17, 5);
+    //         disp.printf("  %0.2f  ", sensors.kg);
+    //         disp.update();
+    //       }
+    //     }
 
-      // Exit Set CAlibration and SAVE settings
-      if (btSET.click())
-      {
-        SaveConfig();
-        Serial.println(F("Calibration SAVE"));
+    //     // Exit Set CAlibration and SAVE settings
+    //     if (btSET.click())
+    //     {
+    //       SaveConfig();
+    //       Serial.println(F("Calibration SAVE"));
 
-        System.DispMenu = Action;
-        disp_ptr = 0;
-        st = false;
+    //       System.DispMenu = Action;
+    //       disp_ptr = 0;
+    //       st = false;
 
-        disp.clear();
-        disp.setScale(2);
-        disp.setCursor(13, 3);
-        disp.print("Сохранено");
-        disp.update();
-        delay(500);
-        disp.clear();
-        // ST.HX711_Block = false;
-        return;
-      }
-    }
-    break;
-  }
+    //       disp.clear();
+    //       disp.setScale(2);
+    //       disp.setCursor(13, 3);
+    //       disp.print("Сохранено");
+    //       disp.update();
+    //       delay(500);
+    //       disp.clear();
+    //       // ST.HX711_Block = false;
+    //       return;
+    //     }
+    //   }
+    //   break;
+    // }
 
   case Notifycation:
   {
@@ -1216,10 +1229,12 @@ void DisplayHandler(uint8_t item)
   case SMS_NUM:
   {
     int currentDigit = 0;
-    // Converting Phone Number (String to char) 
-    CFG.phone.toCharArray(CFG.phoneChar, 11); 
+    // Converting Phone Number (String to char)
+    CFG.phone.toCharArray(CFG.phoneChar, 12);
     // Converting Phone Number (Char to Int array)
-    for (int i = 0; i < 10; i++)
+    Serial.printf("Phone Int:");
+
+    for (int i = 0; i < 11; i++)
     {
       CFG.phoneInt[i] = (CFG.phoneChar[i] - '0');
     }
@@ -1230,7 +1245,7 @@ void DisplayHandler(uint8_t item)
     disp.print("СМС Номер:");
 
     disp.setCursor(0, 5);
-    for (int i = 0; i < 10; i++)
+    for (int i = 0; i < 11; i++)
     {
       if (i == currentDigit)
       {
@@ -1243,7 +1258,7 @@ void DisplayHandler(uint8_t item)
 
     disp.update();
 
-    while (currentDigit != 10)
+    while (currentDigit != 11)
     {
       btSET.tick();
       btUP.tick();
@@ -1260,7 +1275,7 @@ void DisplayHandler(uint8_t item)
         disp.print("СМС Номер:");
 
         disp.setCursor(0, 5);
-        for (int i = 0; i < 10; i++)
+        for (int i = 0; i < 11; i++)
         {
           (i == currentDigit) ? disp.invertText(true) : disp.invertText(false);
           disp.print(CFG.phoneInt[i]);
@@ -1279,7 +1294,7 @@ void DisplayHandler(uint8_t item)
         disp.print("СМС Номер:");
 
         disp.setCursor(0, 5);
-        for (int i = 0; i < 10; i++)
+        for (int i = 0; i < 11; i++)
         {
           (i == currentDigit) ? disp.invertText(true) : disp.invertText(false);
           disp.print(CFG.phoneInt[i]);
@@ -1302,7 +1317,7 @@ void DisplayHandler(uint8_t item)
         disp.print("СМС Номер:");
 
         disp.setCursor(0, 5);
-        for (int i = 0; i < 10; i++)
+        for (int i = 0; i < 11; i++)
         {
           (i == currentDigit) ? disp.invertText(true) : disp.invertText(false);
           disp.print(CFG.phoneInt[i]);
@@ -1311,7 +1326,7 @@ void DisplayHandler(uint8_t item)
       }
     }
     // Converting PhoneNumber (Int to Char )
-    for (int i = 0; i < 10; i++)
+    for (int i = 0; i < 11; i++)
     {
       CFG.phoneChar[i] = (char)(CFG.phoneInt[i] + '0');
     }

@@ -36,8 +36,8 @@
 #define AccessPoint 1
 #define WorkNET
 
-#define CALL_FAIL 255
-#define EEP_DONE 200
+// #define CALL_FAIL 255
+// #define EEP_DONE 200
 
 #define DISABLE 0
 #define ENABLE 1
@@ -68,12 +68,13 @@ extern DateTime Clock;
 
 //========================== ENUMERATION ================================
 //=======================================================================
+#define ITEMS 4 // Main Menu Items (Menu and Action is not includet)
 enum menu
 {
   Menu = 1,
   Action,
   Time,
-  Calib,
+  // Calib,
   Notifycation,
   SMS_NUM,
   ZeroSet
@@ -129,7 +130,7 @@ struct GlobalConfig
   int8_t t2_sms = 0;
   int8_t num[10] = {0};
   String phone = "";    // Phone Number (String)
-  char phoneChar[11];   // Phone Number (to Char)
+  char phoneChar[12];   // Phone Number (to Char)
   int phoneInt[11] = {0};
   uint16_t iso_code = 7;
   int8_t UserSendTime1 = 0;
