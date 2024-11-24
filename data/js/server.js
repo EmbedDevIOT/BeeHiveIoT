@@ -128,11 +128,22 @@ function BCalibrationSave(){
     xml.send();
 }
 
+function BCalUp() {
+   document.getElementById("cal").value = (document.getElementById("cal").value + 0,1);
+
+}
+
+function BCalDown() {
+    
+}
+
 function BSysUPD() {
     let xml = new XMLHttpRequest();
     let buf = "?";
     buf += "T1O=" + document.getElementById("t1_offset").value + "&";
-    buf += "T2O=" + document.getElementById("t2_offset").value;
+    buf += "T2O=" + document.getElementById("t2_offset").value + "&";
+    buf += "N=" + document.getElementById("num").value ;
+
 
     xml.open("GET", "SysUPD" + buf, 1);
     // console.log(xml);

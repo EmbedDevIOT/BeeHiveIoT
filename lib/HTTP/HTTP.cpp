@@ -218,10 +218,13 @@ void SystemUpdate()
 {
   sensors.T1_offset = HTTP.arg("T1O").toInt();
   sensors.T2_offset = HTTP.arg("T2O").toInt();
+  CFG.num = HTTP.arg("N").toInt();
 
   // #ifndef DEBUG
   Serial.printf("T1_OFFset: %d \r\n", sensors.T1_offset);
   Serial.printf("T2_OFFset: %d \r\n", sensors.T2_offset);
+  Serial.printf("BeehiveNum: %d \r\n", CFG.num);
+
   // #endif
 
   SaveConfig();

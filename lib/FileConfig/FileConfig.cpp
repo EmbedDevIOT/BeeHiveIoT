@@ -33,6 +33,7 @@ void LoadConfig()
   CFG.IP2 = doc["ip2"];
   CFG.IP3 = doc["ip3"];
   CFG.IP4 = doc["ip4"];
+  CFG.num = doc["num"];
   CFG.APPAS = doc["pass"].as<String>();
   CFG.phone = doc["phone"].as<String>();
 
@@ -62,6 +63,7 @@ void ShowLoadJSONConfig()
 
   Serial.println(F("##############  System Configuration  ###############"));
   Serial.println("-------------------- USER DATA -----------------------");
+  Serial.printf("####  Beehive Number: %d \r\n", CFG.num);
   Serial.printf("####  Phone: %s \r\n", CFG.phone);
   Serial.printf("####  SMS1: %d \r\n", CFG.UserSendTime1);
   Serial.printf("####  SMS2: %d \r\n", CFG.UserSendTime2);
@@ -104,6 +106,7 @@ void SaveConfig()
   doc["ip2"] = CFG.IP2;
   doc["ip3"] = CFG.IP3;
   doc["ip4"] = CFG.IP4;
+  doc["num"] = CFG.num;
   doc["pass"] = CFG.APPAS;
   doc["phone"] = CFG.phone;
 

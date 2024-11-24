@@ -3,7 +3,6 @@
 
 #include <Arduino.h>
 
-// #include <GyverOS.h>
 #include <WiFi.h>
 #include <WebServer.h>
 #include "SPIFFS.h"
@@ -35,9 +34,6 @@
 #define Client 0
 #define AccessPoint 1
 #define WorkNET
-
-// #define CALL_FAIL 255
-// #define EEP_DONE 200
 
 #define DISABLE 0
 #define ENABLE 1
@@ -74,7 +70,6 @@ enum menu
   Menu = 1,
   Action,
   Time,
-  // Calib,
   Notifycation,
   SMS_NUM,
   ZeroSet
@@ -99,16 +94,17 @@ struct GlobalConfig
   // General settings
   uint16_t sn = 0;
   String fw = ""; // accepts from setup()
-  String fwdate = "13.11.2024";
+  String fwdate = "17.11.2024";
   String chipID = "";
   String MacAdr = "";
 
   // WiFi Data settings
-  String APSSID = "Beekeeper";
-  String APPAS = "12345678";
+  String APSSID = "Beehive";
+  String APPAS = "retra777zxc";
+
   String Ssid = "MkT";           // SSID Wifi network
   String Password = "QFCxfXMA3"; // Passwords WiFi network
-  byte WiFiMode = AccessPoint; // Режим работы WiFi
+  byte WiFiMode = AccessPoint;   // Режим работы WiFi
   byte IP1 = 192;
   byte IP2 = 168;
   byte IP3 = 1;
@@ -123,22 +119,21 @@ struct GlobalConfig
   byte MK4 = 0;
 
   // Beehive data
-  uint8_t st_cal = 0;
-  float cal_f = 0.0;
-  int32_t avr = 0;
-  int8_t t1_sms = 0;
-  int8_t t2_sms = 0;
-  int8_t num[10] = {0};
-  String phone = "";    // Phone Number (String)
-  char phoneChar[12];   // Phone Number (to Char)
+  uint8_t num = 1; // Beehive number
+  // uint8_t st_cal = 0;
+  float cal_f = 0.0; // Calibration factor
+  int32_t avr = 0;   // Calibration average
+  // int8_t t1_sms = 0;    // Time Point for send SMS_1
+  // int8_t t2_sms = 0;
+  // int8_t num[10] = {0};
+  String phone = "";  // Phone Number (String)
+  char phoneChar[12]; // Phone Number (to Char)
   int phoneInt[11] = {0};
   uint16_t iso_code = 7;
-  int8_t UserSendTime1 = 0;
-  int8_t UserSendTime2 = 0;
-
+  int8_t UserSendTime1 = 0; // Time Point for send SMS_1
+  int8_t UserSendTime2 = 0; // Time Point for send SMS_2
 };
 extern GlobalConfig CFG;
-// extern GlobalConfig Config;
 //=======================================================================
 
 //=======================================================================
@@ -146,6 +141,8 @@ struct SYTM
 {
   bool DispState = true;
   uint8_t DispMenu = Action;
+  uint16_t tmrSec = 0;
+  uint16_t tmrMin = 0;
 };
 extern SYTM System;
 //=======================================================================
@@ -182,8 +179,6 @@ struct Flag
   bool HX711_Block = false;
   bool SetZero = false;
   bool Call_Block = false;
-  uint8_t FirstStart = 0;
-  uint8_t Calibration = 0;
 };
 extern Flag ST;
 //============================================================================

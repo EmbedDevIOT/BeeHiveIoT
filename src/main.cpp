@@ -15,18 +15,15 @@
 //=======================================================================
 
 //============================== STRUCTURES =============================
-// GlobalConfig Config;
 GlobalConfig CFG;
 SNS sensors;
 SYTM System;
 DateTime Clock;
 Flag ST;
-// EEP_D _eep;
 //=======================================================================
 
 //============================ GLOBAL VARIABLES =========================
 uint8_t tim_sec = 0;
-uint32_t now;
 
 uint32_t block_timer = 0;
 
@@ -35,8 +32,6 @@ uint16_t tmrMin = 0;
 uint8_t disp_ptr = 0;
 bool st = false; // menu state ()selection
 bool i2c_wakeup = false;
-
-char charPhoneNumber[11];
 
 RTC_DATA_ATTR int bootCount = 0;
 //================================ OBJECTs =============================
@@ -201,7 +196,6 @@ void Task1000ms(void *pvParameters)
       if (!ST.Call_Block)
       {
         // xSemaphoreTake(uart_mutex, portMAX_DELAY);
-        // ShowDBG();
         DebugControl();
         // xSemaphoreGive(uart_mutex);
       }
